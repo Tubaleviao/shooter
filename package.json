@@ -1,0 +1,32 @@
+{
+  "name": "shooter",
+  "version": "1.0.0",
+  "description": "node.js game using socket and jquery",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tubaleviao/shooter.git"
+  },
+  "keywords": [
+    "node.js",
+    "shooter",
+    "game",
+    "socket.io",
+    "node",
+    "socket"
+  ],
+  "author": "Tubalevião",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Tubaleviao/shooter/issues"
+  },
+  "homepage": "https://github.com/Tubaleviao/shooter#readme",
+  "dependencies": {
+    "ejs": "^2.3.4",
+    "express": "^4.13.3",
+    "socket.io": "^1.3.7"
+  }
+}
