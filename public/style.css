@@ -1,0 +1,45 @@
+body{
+	background-color: black;
+	color: lime;
+	text-align: center;
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+.player{
+	position: relative;
+	border: solid;
+	border-width: 1px;
+	border-color: lime;
+	width: 5px;
+	float: left;
+}
+.player:hover{
+	cursor: default;
+}
+.login{
+	font-family: Courier New, Courier, monospace;
+	margin-top: 10%;
+}
+.logout{
+	display: none;
+}
+.bullet{
+	width: 10px;
+	height: 1px;
+	border: solid;
+	border-width: 1px;
+	border-color: lime;
+}
+#p1{
+	width: 5px;
+	position: relative;
+	left: 50%;
+	top: 5%;
+	border: solid;
+	border-width: 1px;
+	border-color: lime;
+}
