@@ -2,8 +2,8 @@ $(function(){
 
 	var $window = $(window);
 	var socket = io();
-	var up=[], down=[], left=[], right=[];
-	var pressed = [];
+	var up, down, left, right;
+	var pressed = [], players = [];
 	var me = 'p1';
 	var shooted = 0;
 	var mouse = {};
@@ -37,6 +37,40 @@ $(function(){
 		return {left: left, top: top};
 	}
 
+	function myshoot(id, start, end, time){
+		var $bullet = $('<div>').addClass('bullet').attr('id', id);
+		$('body').append($bullet);
+
+		$('#'+id).offset(start).each(function(){
+			$(this).css('transform', $('#'+me).css('transform'));
+			$(this).animate({
+				left: end.left,
+				top: end.top
+			}, {duration: time, step: function(now, fx){
+				var all = $('.player').overlaps($('.bullet'));
+				if(all.hits.length){
+					$(this).remove();
+				}
+			}, complete: function(){
+				$(this).remove();
+			}});
+		});
+	}
+
+	function beingHit(bullet){
+		if($('img').length){
+			var aaah = new Audio('aaah.mp3');
+			aaah.play();
+			$('img').first().remove();
+		}else{
+			var death = new Audio('pac_death.mp3');
+			death.play();
+			$('#'+me).remove();
+			$('.logout').show();
+			socket.emit('kill', {player: me});
+		}
+	}
+
 	function fire(shooter, id, start, end, time){
 		var $bullet = $('<div>').addClass('bullet').attr('id', id);
 		$('body').append($bullet);
@@ -47,25 +81,11 @@ $(function(){
 				left: end.left,
 				top: end.top
 			}, {duration: time, step: function(now, fx){
-				if(shooter == me){
-					var all = $('.player').overlaps($('.bullet'));
-					if(all.hits.length){
+				if($('#'+me).length){
+					var mehit = $(this).overlaps($('#'+me));
+					if(mehit.hits.length){
+						beingHit($(this).attr('id'));
 						$(this).remove();
-					}
-				}else{
-					if($('#'+me).length){
-						var mehit = $(this).overlaps($('#'+me));
-						if(mehit.hits.length){
-							if(life>0){
-								life -= 1;
-								$('#log').text('Vidas: '+life);
-							}else{
-								$('#'+me).remove();
-								$('.logout').show();
-								socket.emit('kill', {player: me});
-							}
-							$(this).remove();
-						}
 					}
 				}
 			}, complete: function(){
@@ -80,8 +100,10 @@ $(function(){
 		var b_end = getShootPoint(me, p.left, p.top, 500);
 		var id = me+shooted;
 		var time = 300;
+		var lazer = new Audio('lazer.mp3');
+		lazer.play();
 
-		fire(me, id, b_start, b_end, time);
+		myshoot(id, b_start, b_end, time);
 
 		var data = {shooter : me, bullet: id, start: b_start, end: b_end, time: time};
 		socket.emit('shoot', data);
@@ -95,6 +117,19 @@ $(function(){
 
 	// Login and startup code
 
+	var impossible = new Audio('impossible.mp3');
+	impossible.addEventListener('ended', function() {
+	    this.currentTime = 0;
+	    this.play();
+	}, false);
+	impossible.volume = 0.5;
+	impossible.play();
+
+	$('#player').on('keypress', function(e){
+		if(e.which == 32)
+			return false;
+	});
+
 	$('#player').focus();
 
 	function getNewPosition(){
@@ -104,7 +139,7 @@ $(function(){
 	function putPlayer(player, position){
 		var $player = $('<div>').addClass('player')
 						.attr('id', player)
-						.append(player);
+						.append('<div>'+player+'</div>');
 			$('body').append($player);
 			$('#'+player).offset(position);
 	}
@@ -122,6 +157,7 @@ $(function(){
 
 	socket.on('addPlayer', function(data){
 		putPlayer(data.name, data.position);
+		players.push({name: data.name, score: 0});
 	});
 
 	socket.on('oldPlayers', function(data){
@@ -166,25 +202,24 @@ $(function(){
 	// Player movement code
 
 	$window.keydown(function(event){
-		turn(me);
 		if(event.which == 87){ // up
 			if(!pressed[87]){
-				up.push(me);
+				up = true;
 				pressed[87] = true;
 			}
 		}else if (event.which == 83){ // down
 			if(!pressed[83]){
-				down.push(me);
+				down = true;
 				pressed[83] = true;
 			}
 		}else if (event.which == 65){ // left
 			if(!pressed[65]){
-				left.push(me);
+				left = true;
 				pressed[65] = true;
 			}
 		}else if (event.which == 68){ // right
 			if(!pressed[68]){
-				right.push(me);
+				right = true;
 				pressed[68] = true;
 			}
 		}
@@ -192,49 +227,53 @@ $(function(){
 
 	$window.keyup(function(event){
 		if(event.which == 87){ // up
-			if(up.indexOf(me)>=0){
-				up.splice(up.indexOf(me), 1);
+			if(up){
+				up = false;
 			}
 			pressed[87] = false;
 		}else if (event.which == 83){ // down
-			if(down.indexOf(me)>=0){
-				down.splice(down.indexOf(me), 1);
+			if(down){
+				down = false;
 			}
 			pressed[83] = false;
 		}else if (event.which == 65){ // left
-			if(left.indexOf(me)>=0){
-				left.splice(left.indexOf(me), 1);
+			if(left){
+				left = false;
 			}
 			pressed[65] = false;
 		}else if (event.which == 68){ // right
-			if(right.indexOf(me)>=0){
-				right.splice(right.indexOf(me), 1);
+			if(right){
+				right = false;
 			}
 			pressed[68] = false;
 		}
 	});
 	
 	function move(){
-		up.forEach(function(pl){
-			var p = $('#'+pl).offset();
-			$('#'+pl).offset({top: p.top-1});
+		if(up){
+			turn(me);
+			var p = $('#'+me).offset();
+			$('#'+me).offset({top: p.top-1});
 			socket.emit('setPosition', {player: me, pos: p});
-		});
-		down.forEach(function(pl){
-			var p = $('#'+pl).offset();
-			$('#'+pl).offset({top: p.top+1});
+		};
+		if(down){
+			turn(me);
+			var p = $('#'+me).offset();
+			$('#'+me).offset({top: p.top+1});
 			socket.emit('setPosition', {player: me, pos: p});
-		});
-		left.forEach(function(pl){
-			var p = $('#'+pl).offset();
-			$('#'+pl).offset({left: p.left-1});
+		};
+		if(left){
+			turn(me);
+			var p = $('#'+me).offset();
+			$('#'+me).offset({left: p.left-1});
 			socket.emit('setPosition', {player: me, pos: p});
-		});
-		right.forEach(function(pl){
-			var p = $('#'+pl).offset();
-			$('#'+pl).offset({left: p.left+1});
+		};
+		if(right){
+			turn(me);
+			var p = $('#'+me).offset();
+			$('#'+me).offset({left: p.left+1});
 			socket.emit('setPosition', {player: me, pos: p});
-		});
+		};
 	}
 
 	socket.on('setPosition', function(data){
